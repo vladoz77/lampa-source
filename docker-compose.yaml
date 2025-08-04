@@ -1,0 +1,46 @@
+services:
+  lampa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: lampa
+    networks:
+      - lampa
+  torrserver:
+    image: ghcr.io/yourok/torrserver
+    container_name: torrserver
+    environment:
+      - TS_PORT=8090
+      - TS_DONTKILL=1
+      - TS_HTTPAUTH=0
+      - TS_CONF_PATH=/opt/ts/config
+      - TS_TORR_DIR=/opt/ts/torrents
+    volumes:
+      - 'torrserv_data:/opt/ts/torrents'
+      - 'torrserv_data:/opt/ts/config'
+    ports:
+      - '8090:8090'
+    restart: unless-stopped
+    networks:
+      - lampa
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - lampa
+      - torrserver
+    restart: unless-stopped
+    networks:
+      - lampa
+
+volumes:
+  torrserv_data:
+networks:
+  lampa:
